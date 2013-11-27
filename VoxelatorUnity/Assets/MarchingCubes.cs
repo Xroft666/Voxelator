@@ -1,8 +1,13 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-// core taken from
-// http://graphics.stanford.edu/~mdfisher/Code/MarchingCubes/MarchingCubes.cpp
+// references
+// http://graphics.stanford.edu/~mdfisher/MarchingCubes.html
+// http://scrawkblog.com/2013/04/01/marching-cubes-plugin-for-unity/
+
+//http://www.exaflop.org/docs/marchcubes/
+//http://books.google.dk/books?id=ZFrlULckWdAC&pg=PA9&redir_esc=y#v=onepage&q&f=false
+//http://www.siafoo.net/snippet/100
 
 public class GRIDCELL 
 {
@@ -324,6 +329,38 @@ public class MarchingCubes : MonoBehaviour
 	{0, 9, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 	{0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 	{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
+
+
+	// vertexOffset lists the positions, relative to vertex0, of each of the 8 vertices of a cube
+	// vertexOffset[8][3]
+	
+	int[,] vertexOffset = new int[,]
+	{
+		{0, 0, 0},{1, 0, 0},{1, 1, 0},{0, 1, 0},
+		{0, 0, 1},{1, 0, 1},{1, 1, 1},{0, 1, 1}
+	};
+	
+	// edgeConnection lists the index of the endpoint vertices for each of the 12 edges of the cube
+	// edgeConnection[12][2]
+	
+	int[,] edgeConnection = new int[,] 
+	{
+		{0,1}, {1,2}, {2,3}, {3,0},
+		{4,5}, {5,6}, {6,7}, {7,4},
+		{0,4}, {1,5}, {2,6}, {3,7}
+	};
+	
+	// edgeDirection lists the direction vector (vertex1-vertex0) for each edge in the cube
+	// edgeDirection[12][3]
+	
+	float[,] edgeDirection = new float[,]
+	{
+		{1.0f, 0.0f, 0.0f},{0.0f, 1.0f, 0.0f},{-1.0f, 0.0f, 0.0f},{0.0f, -1.0f, 0.0f},
+		{1.0f, 0.0f, 0.0f},{0.0f, 1.0f, 0.0f},{-1.0f, 0.0f, 0.0f},{0.0f, -1.0f, 0.0f},
+		{0.0f, 0.0f, 1.0f},{0.0f, 0.0f, 1.0f},{ 0.0f, 0.0f, 1.0f},{0.0f,  0.0f, 1.0f}
+	};
+
+	int[] windingOrder = new int[] { 0, 1, 2 };
 	
 	public MeshFilter filter;
 	
@@ -348,181 +385,105 @@ public class MarchingCubes : MonoBehaviour
 				
 				// Voxel vertices positions
 				cell.p[0] = new Vector3(i - halfDensity, j - halfDensity, k - halfDensity);
-				cell.p[1] = new Vector3(i - halfDensity, j - halfDensity, k + halfDensity);
-				cell.p[2] = new Vector3(i - halfDensity, j + halfDensity, k - halfDensity);
-				cell.p[3] = new Vector3(i - halfDensity, j + halfDensity, k + halfDensity);
-				cell.p[4] = new Vector3(i + halfDensity, j - halfDensity, k - halfDensity);
+				cell.p[1] = new Vector3(i + halfDensity, j - halfDensity, k - halfDensity);
+				cell.p[2] = new Vector3(i + halfDensity, j + halfDensity, k - halfDensity);
+				cell.p[3] = new Vector3(i - halfDensity, j + halfDensity, k - halfDensity);
+				cell.p[4] = new Vector3(i - halfDensity, j - halfDensity, k + halfDensity);
 				cell.p[5] = new Vector3(i + halfDensity, j - halfDensity, k + halfDensity);
-				cell.p[6] = new Vector3(i + halfDensity, j + halfDensity, k - halfDensity);
-				cell.p[7] = new Vector3(i + halfDensity, j + halfDensity, k + halfDensity);
+				cell.p[6] = new Vector3(i + halfDensity, j + halfDensity, k + halfDensity);
+				cell.p[7] = new Vector3(i - halfDensity, j + halfDensity, k + halfDensity);
 				
 				// Voxel vertices density (currently, just a sphere formula: x^2 + y^2 + z^2 >= R)
 				cell.val[0] = (i - halfDensity) * (i - halfDensity) + (j - halfDensity) * (j - halfDensity) + (k - halfDensity) * (k - halfDensity) <= halfSize * halfSize ? 1 : -1;
-				cell.val[1] = (i - halfDensity) * (i - halfDensity) + (j - halfDensity) * (j - halfDensity) + (k + halfDensity) * (k + halfDensity) <= halfSize * halfSize ? 1 : -1;
-				cell.val[2] = (i - halfDensity) * (i - halfDensity) + (j + halfDensity) * (j + halfDensity) + (k - halfDensity) * (k - halfDensity) <= halfSize * halfSize ? 1 : -1;
-				cell.val[3] = (i - halfDensity) * (i - halfDensity) + (j + halfDensity) * (j + halfDensity) + (k + halfDensity) * (k + halfDensity) <= halfSize * halfSize ? 1 : -1;
-				cell.val[4] = (i + halfDensity) * (i + halfDensity) + (j - halfDensity) * (j - halfDensity) + (k - halfDensity) * (k - halfDensity) <= halfSize * halfSize ? 1 : -1;
+				cell.val[1] = (i + halfDensity) * (i + halfDensity) + (j - halfDensity) * (j - halfDensity) + (k - halfDensity) * (k - halfDensity) <= halfSize * halfSize ? 1 : -1;
+				cell.val[2] = (i + halfDensity) * (i + halfDensity) + (j + halfDensity) * (j + halfDensity) + (k - halfDensity) * (k - halfDensity) <= halfSize * halfSize ? 1 : -1;
+				cell.val[3] = (i - halfDensity) * (i - halfDensity) + (j + halfDensity) * (j + halfDensity) + (k - halfDensity) * (k - halfDensity) <= halfSize * halfSize ? 1 : -1;
+				cell.val[4] = (i - halfDensity) * (i - halfDensity) + (j - halfDensity) * (j - halfDensity) + (k + halfDensity) * (k + halfDensity) <= halfSize * halfSize ? 1 : -1;
 				cell.val[5] = (i + halfDensity) * (i + halfDensity) + (j - halfDensity) * (j - halfDensity) + (k + halfDensity) * (k + halfDensity) <= halfSize * halfSize ? 1 : -1;
-				cell.val[6] = (i + halfDensity) * (i + halfDensity) + (j + halfDensity) * (j + halfDensity) + (k - halfDensity) * (k - halfDensity) <= halfSize * halfSize ? 1 : -1;
-				cell.val[7] = (i + halfDensity) * (i + halfDensity) + (j + halfDensity) * (j + halfDensity) + (k + halfDensity) * (k + halfDensity) <= halfSize * halfSize ? 1 : -1;
+				cell.val[6] = (i + halfDensity) * (i + halfDensity) + (j + halfDensity) * (j + halfDensity) + (k + halfDensity) * (k + halfDensity) <= halfSize * halfSize ? 1 : -1;
+				cell.val[7] = (i - halfDensity) * (i - halfDensity) + (j + halfDensity) * (j + halfDensity) + (k + halfDensity) * (k + halfDensity) <= halfSize * halfSize ? 1 : -1;
 			
 				voxelsData.Add(cell);
 			}
 		
 		List<int> totalTriangles = new List<int>();
 		List<Vector3> totalVertices = new List<Vector3>();
-		List<Vector3> totalNormals = new List<Vector3>();
-		
-		int vertCounter = 0;
-		
+
+
 		// Taking out triangles from every voxel
-		
 		foreach( GRIDCELL cell in voxelsData )	
-		{
-			int[] triangles;
-			Vector3[] vertices;
-			Vector3[] normals;
-			
-			int triCount;
-			
-			triCount = Polygonise(cell, out triangles, out vertices, out normals);
-			
-			if( triangles == null || vertices == null || normals == null)
-				continue;
-			
-			
-			totalVertices.AddRange(vertices);
-			
-			for( int i = 0; i < triangles.Length; i++ )
-				triangles[i] += vertCounter;
-			
-			totalTriangles.AddRange(triangles);
-			totalNormals.AddRange(normals);
-			
-			vertCounter += vertices.Length;
-			
-		}
+			Polygonise(cell, ref totalVertices, ref totalTriangles);
 		
 		// Applying all the triangles to the mesh
-		
 		filter.mesh.vertices = totalVertices.ToArray();
 		filter.mesh.triangles = totalTriangles.ToArray();
-//		filter.mesh.normals = totalNormals.ToArray();
+		filter.mesh.uv = new Vector2[totalVertices.Count];
+
 		filter.mesh.RecalculateNormals();
 	}
 
 
-	int Polygonise(GRIDCELL Grid, out int[] triangles, out Vector3[] vertices, out Vector3[] normals)
+	void Polygonise(GRIDCELL Grid, ref List<Vector3> vertices, ref List<int> triangles)
 	{
-		int TriangleCount;
 		int CubeIndex;
 	
-		triangles = null;
-		vertices = null;
-		normals = null;
-		
 		Vector3[] VertexList = new Vector3[12];
 		int[] LocalRemap = new int[12];
 		
 		//Determine the index into the edge table which
 		//tells us which vertices are inside of the surface
 		CubeIndex = 0;
-		if (Grid.val[0] < 0.0f) CubeIndex |= 1;
-		if (Grid.val[1] < 0.0f) CubeIndex |= 2;
-		if (Grid.val[2] < 0.0f) CubeIndex |= 4;
-		if (Grid.val[3] < 0.0f) CubeIndex |= 8;
-		if (Grid.val[4] < 0.0f) CubeIndex |= 16;
-		if (Grid.val[5] < 0.0f) CubeIndex |= 32;
-		if (Grid.val[6] < 0.0f) CubeIndex |= 64;
-		if (Grid.val[7] < 0.0f) CubeIndex |= 128;
+
+		for(int i = 0; i < 8; i++) 
+			if(Grid.val[i] < 0.0f) 
+				CubeIndex |= 1 << i;
 	
 		//Cube is entirely in/out of the surface
 		if (edgeTable[CubeIndex] == 0)
-			return(0);
+			return;
 	
 		//Find the vertices where the surface intersects the cube
-		if ((edgeTable[CubeIndex] & 1) == 1)
-			VertexList[0] =
-				VertexInterp(Grid.p[0],Grid.p[1],Grid.val[0],Grid.val[1]);
-		if ((edgeTable[CubeIndex] & 2) == 2)
-			VertexList[1] =
-				VertexInterp(Grid.p[1],Grid.p[2],Grid.val[1],Grid.val[2]);
-		if ((edgeTable[CubeIndex] & 4) == 4)
-			VertexList[2] =
-				VertexInterp(Grid.p[2],Grid.p[3],Grid.val[2],Grid.val[3]);
-		if ((edgeTable[CubeIndex] & 8) == 8)
-			VertexList[3] =
-				VertexInterp(Grid.p[3],Grid.p[0],Grid.val[3],Grid.val[0]);
-		if ((edgeTable[CubeIndex] & 16) == 16)
-			VertexList[4] =
-				VertexInterp(Grid.p[4],Grid.p[5],Grid.val[4],Grid.val[5]);
-		if ((edgeTable[CubeIndex] & 32) == 32)
-			VertexList[5] =
-				VertexInterp(Grid.p[5],Grid.p[6],Grid.val[5],Grid.val[6]);
-		if ((edgeTable[CubeIndex] & 64) == 64)
-			VertexList[6] =
-				VertexInterp(Grid.p[6],Grid.p[7],Grid.val[6],Grid.val[7]);
-		if ((edgeTable[CubeIndex] & 128) == 128)
-			VertexList[7] =
-				VertexInterp(Grid.p[7],Grid.p[4],Grid.val[7],Grid.val[4]);
-		if ((edgeTable[CubeIndex] & 256) == 256)
-			VertexList[8] =
-				VertexInterp(Grid.p[0],Grid.p[4],Grid.val[0],Grid.val[4]);
-		if ((edgeTable[CubeIndex] & 512) == 512)
-			VertexList[9] =
-				VertexInterp(Grid.p[1],Grid.p[5],Grid.val[1],Grid.val[5]);
-		if ((edgeTable[CubeIndex] & 1024) == 1024)
-			VertexList[10] =
-				VertexInterp(Grid.p[2],Grid.p[6],Grid.val[2],Grid.val[6]);
-		if ((edgeTable[CubeIndex] & 2048) == 2048)
-			VertexList[11] =
-				VertexInterp(Grid.p[3],Grid.p[7],Grid.val[3],Grid.val[7]);
-	
+		for( int i = 0; i < 12; i++ )
+			if((edgeTable[CubeIndex] & (1 << i )) == (1 << i ) )
+			{
+				VertexList[i] = VertexInterp(Grid.p[edgeConnection[i, 0]],Grid.p[edgeConnection[i, 1]],Grid.val[edgeConnection[i, 0]],Grid.val[edgeConnection[i, 1]]);
+			}
+
 		int NewVertexCount = 0;
 		for (int i = 0; i < 12; i++)
 			LocalRemap[i] = -1;
-	
-		
-		List<Vector3> vertList = new List<Vector3>();
+
+		#region low quality but better vertices number
+		int idx = vertices.Count;
 		for (int i = 0; triTable[CubeIndex,i] != -1; i++)
 		{
 			if(LocalRemap[triTable[CubeIndex,i]] == -1)
 			{
-				vertList.Add(VertexList[triTable[CubeIndex,i]]);
+				vertices.Add(VertexList[triTable[CubeIndex,i]]);
 				LocalRemap[triTable[CubeIndex,i]] = NewVertexCount;
 				NewVertexCount++;
 			}
-		}
-		
-		vertices = vertList.ToArray();
-		
-		TriangleCount = 0;
-		List<int> indices = new List<int>();
-		List<Vector3> norms = new List<Vector3>();
-		
-		bool clockWiseOrderToggle = true;
-		
-		for (int i = 0; triTable[CubeIndex,i] != -1; i += 3) 
-		{
-			indices.Add( LocalRemap[triTable[CubeIndex, i + 0]] );
-			indices.Add( LocalRemap[triTable[CubeIndex, i + 1]] );
-			indices.Add( LocalRemap[triTable[CubeIndex, i + 2]] );
 
-			
-//			Vector3 v1 = VertexList[triTable[CubeIndex, i + 0]];
-//			Vector3 v2 = VertexList[triTable[CubeIndex, i + 1]];
-//			Vector3 v3 = VertexList[triTable[CubeIndex, i + 2]];
-//			
-//			norms.Add(Vector3.Cross(v2 - v1, v3 - v1));
-			
-			TriangleCount++;
-			clockWiseOrderToggle = !clockWiseOrderToggle;
+			triangles.Add( idx + LocalRemap[triTable[CubeIndex, i]] );
 		}
-		
-		triangles = indices.ToArray();
-		normals = norms.ToArray();
-	
-		return(TriangleCount);
+		#endregion
+
+		#region high quality but bigger vertices number
+//		for(int i = 0; i < 5; i++)
+//		{
+//			if(triTable[CubeIndex,3*i] < 0) break;
+//			
+//			int idx = vertices.Count;
+//			
+//			for(int j = 0; j < 3; j++)
+//			{
+//				int vert = triTable[CubeIndex,3*i+j];
+//				triangles.Add(idx+windingOrder[j]);
+//				vertices.Add(VertexList[vert]);
+//			}
+//		}
+		#endregion
+
 	}
 
 	/*
@@ -533,5 +494,13 @@ public class MarchingCubes : MonoBehaviour
 	{
 		return (p1 + (-valp1 / (valp2 - valp1)) * (p2 - p1));
 	}
+
+	float GetOffset(float v1, float v2)
+	{
+		float delta = v2 - v1;
+		return (delta == 0.0f) ? 0.5f : (0f - v1)/delta;
+	}
 	
 }
+
+
