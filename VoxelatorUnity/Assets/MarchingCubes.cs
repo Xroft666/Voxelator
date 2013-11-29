@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
+using System.Linq;
+
 // references
 // http://graphics.stanford.edu/~mdfisher/MarchingCubes.html
 // http://scrawkblog.com/2013/04/01/marching-cubes-plugin-for-unity/
@@ -9,11 +11,12 @@ using System.Collections.Generic;
 //http://books.google.dk/books?id=ZFrlULckWdAC&pg=PA9&redir_esc=y#v=onepage&q&f=false
 //http://www.siafoo.net/snippet/100
 
-public class GRIDCELL 
-{
-   	public Vector3[] p = new Vector3[8];	//position of each corner of the grid in world space
-   	public float[] val = new float[8];		//value of the function at this grid corner
-};
+//public class GRIDCELL 
+//{
+//	public float density = -1f;	
+//   	public int[] indices = new int[4];	
+//	public Vector3 position = Vector3;
+//};
 
 public class MarchingCubes : MonoBehaviour 
 {
@@ -364,55 +367,102 @@ public class MarchingCubes : MonoBehaviour
 	
 	public MeshFilter filter;
 	
-	public float gridSize = 20f;
-	public float gridDensity = 1f;
+	public int gridSize = 20;
+	public int gridDensity = 1;
 	
 	void Start()
 	{		
 		filter.mesh = new Mesh();
-		
-		List<GRIDCELL> voxelsData = new List<GRIDCELL>();
-		
-		float halfSize = gridSize / 2f;
-		float halfDensity = gridDensity / 2f;
-		
-		for( float i = -halfSize; i < halfSize; i += gridDensity )
-			for( float j = -halfSize; j < halfSize; j += gridDensity )
-				for( float k = -halfSize; k < halfSize; k += gridDensity )
-					
+
+		float[,,] voxelsData = new float[gridSize,gridSize,gridSize];
+
+		// Voxel vertices density (currently, just a sphere formula: x^2 + y^2 + z^2 >= R)
+		for( int x = 0; x < gridSize; x ++ )
+			for( int y = 0; y < gridSize; y ++ )
+				for( int z = 0; z < gridSize; z ++ )
 			{
-				GRIDCELL cell = new GRIDCELL();
-				
-				// Voxel vertices positions
-				cell.p[0] = new Vector3(i - halfDensity, j - halfDensity, k - halfDensity);
-				cell.p[1] = new Vector3(i + halfDensity, j - halfDensity, k - halfDensity);
-				cell.p[2] = new Vector3(i + halfDensity, j + halfDensity, k - halfDensity);
-				cell.p[3] = new Vector3(i - halfDensity, j + halfDensity, k - halfDensity);
-				cell.p[4] = new Vector3(i - halfDensity, j - halfDensity, k + halfDensity);
-				cell.p[5] = new Vector3(i + halfDensity, j - halfDensity, k + halfDensity);
-				cell.p[6] = new Vector3(i + halfDensity, j + halfDensity, k + halfDensity);
-				cell.p[7] = new Vector3(i - halfDensity, j + halfDensity, k + halfDensity);
-				
-				// Voxel vertices density (currently, just a sphere formula: x^2 + y^2 + z^2 >= R)
-				cell.val[0] = (i - halfDensity) * (i - halfDensity) + (j - halfDensity) * (j - halfDensity) + (k - halfDensity) * (k - halfDensity) <= halfSize * halfSize ? 1 : -1;
-				cell.val[1] = (i + halfDensity) * (i + halfDensity) + (j - halfDensity) * (j - halfDensity) + (k - halfDensity) * (k - halfDensity) <= halfSize * halfSize ? 1 : -1;
-				cell.val[2] = (i + halfDensity) * (i + halfDensity) + (j + halfDensity) * (j + halfDensity) + (k - halfDensity) * (k - halfDensity) <= halfSize * halfSize ? 1 : -1;
-				cell.val[3] = (i - halfDensity) * (i - halfDensity) + (j + halfDensity) * (j + halfDensity) + (k - halfDensity) * (k - halfDensity) <= halfSize * halfSize ? 1 : -1;
-				cell.val[4] = (i - halfDensity) * (i - halfDensity) + (j - halfDensity) * (j - halfDensity) + (k + halfDensity) * (k + halfDensity) <= halfSize * halfSize ? 1 : -1;
-				cell.val[5] = (i + halfDensity) * (i + halfDensity) + (j - halfDensity) * (j - halfDensity) + (k + halfDensity) * (k + halfDensity) <= halfSize * halfSize ? 1 : -1;
-				cell.val[6] = (i + halfDensity) * (i + halfDensity) + (j + halfDensity) * (j + halfDensity) + (k + halfDensity) * (k + halfDensity) <= halfSize * halfSize ? 1 : -1;
-				cell.val[7] = (i - halfDensity) * (i - halfDensity) + (j + halfDensity) * (j + halfDensity) + (k + halfDensity) * (k + halfDensity) <= halfSize * halfSize ? 1 : -1;
-			
-				voxelsData.Add(cell);
+				voxelsData[x,y,z] = (x - gridSize / 2f) * (x - gridSize / 2f) + 
+									(y - gridSize / 2f) * (y - gridSize / 2f) + 
+									(z - gridSize / 2f) * (z - gridSize / 2f) <= gridSize * gridSize / 4f? 1f : -1f;
 			}
+			
 		
 		List<int> totalTriangles = new List<int>();
 		List<Vector3> totalVertices = new List<Vector3>();
 
 
 		// Taking out triangles from every voxel
-		foreach( GRIDCELL cell in voxelsData )	
-			Polygonise(cell, ref totalVertices, ref totalTriangles);
+		for( int x = 0; x < gridSize - 1; x ++ )
+			for( int y = 0; y < gridSize - 1; y ++ )
+				for( int z = 0; z < gridSize - 1; z ++ )
+				{
+					//Determine the index into the edge table which
+					//tells us which vertices are inside of the surface
+					int CubeIndex = 0;
+					
+					Vector3[] VertexList = new Vector3[12];
+					int[] LocalRemap = new int[12];
+					
+					for(int i = 0; i < 8; i++) 
+						if( voxelsData[ x + vertexOffset[i, 0], 
+					              		y + vertexOffset[i, 1],
+					              		z + vertexOffset[i, 2]] < 0.0f) 
+							CubeIndex |= 1 << i;
+			
+					//Cube is entirely in/out of the surface
+					if (edgeTable[CubeIndex] == 0)
+						continue;
+
+
+					
+					//Find the vertices where the surface intersects the cube
+					for( int i = 0; i < 12; i++ )
+						if((edgeTable[CubeIndex] & (1 << i )) == (1 << i ) )
+						{
+							float offset = GetOffset(	voxelsData[ x + vertexOffset[edgeConnection[i,0], 0],
+					                                    			y + vertexOffset[edgeConnection[i,0], 1],
+					                                    			z + vertexOffset[edgeConnection[i,0], 2]], 
+
+					                         			voxelsData[ x + vertexOffset[edgeConnection[i,1], 0],
+					                         						y + vertexOffset[edgeConnection[i,1], 1],
+					                         						z + vertexOffset[edgeConnection[i,1], 2]]);
+							
+							VertexList[i].x = x + (vertexOffset[edgeConnection[i,0],0] + offset * edgeDirection[i,0]);
+							VertexList[i].y = y + (vertexOffset[edgeConnection[i,0],1] + offset * edgeDirection[i,1]);
+							VertexList[i].z = z + (vertexOffset[edgeConnection[i,0],2] + offset * edgeDirection[i,2]);
+						
+						}
+
+					for(int i = 0; i < 5; i++)
+					{
+						if(triTable[CubeIndex,3*i] < 0) break;
+						
+						int idx = totalVertices.Count;
+						
+						for(int j = 0; j < 3; j++)
+						{
+							int vert = triTable[CubeIndex,3*i+j];
+							totalTriangles.Add(idx+windingOrder[j]);
+							totalVertices.Add(VertexList[vert]);
+						}
+					}
+
+//					int NewVertexCount = 0;
+//					int idx = totalVertices.Count;
+//					for (int i = 0; triTable[CubeIndex,i] != -1; i++)
+//					{
+//						if(LocalRemap[triTable[CubeIndex,i]] == -1)
+//						{
+//							totalVertices.Add(VertexList[triTable[CubeIndex,i]]);
+//							LocalRemap[triTable[CubeIndex,i]] = NewVertexCount;
+//							NewVertexCount++;
+//						}
+//					
+//						totalTriangles.Add( idx + LocalRemap[triTable[CubeIndex, i]] );
+//					}
+
+				}
+	
 		
 		// Applying all the triangles to the mesh
 		filter.mesh.vertices = totalVertices.ToArray();
@@ -422,70 +472,11 @@ public class MarchingCubes : MonoBehaviour
 		filter.mesh.RecalculateNormals();
 	}
 
-
-	void Polygonise(GRIDCELL Grid, ref List<Vector3> vertices, ref List<int> triangles)
+	void OnDestroy()
 	{
-		int CubeIndex;
-	
-		Vector3[] VertexList = new Vector3[12];
-		int[] LocalRemap = new int[12];
-		
-		//Determine the index into the edge table which
-		//tells us which vertices are inside of the surface
-		CubeIndex = 0;
-
-		for(int i = 0; i < 8; i++) 
-			if(Grid.val[i] < 0.0f) 
-				CubeIndex |= 1 << i;
-	
-		//Cube is entirely in/out of the surface
-		if (edgeTable[CubeIndex] == 0)
-			return;
-	
-		//Find the vertices where the surface intersects the cube
-		for( int i = 0; i < 12; i++ )
-			if((edgeTable[CubeIndex] & (1 << i )) == (1 << i ) )
-			{
-				VertexList[i] = VertexInterp(Grid.p[edgeConnection[i, 0]],Grid.p[edgeConnection[i, 1]],Grid.val[edgeConnection[i, 0]],Grid.val[edgeConnection[i, 1]]);
-			}
-
-		int NewVertexCount = 0;
-		for (int i = 0; i < 12; i++)
-			LocalRemap[i] = -1;
-
-		#region low quality but better vertices number
-		int idx = vertices.Count;
-		for (int i = 0; triTable[CubeIndex,i] != -1; i++)
-		{
-			if(LocalRemap[triTable[CubeIndex,i]] == -1)
-			{
-				vertices.Add(VertexList[triTable[CubeIndex,i]]);
-				LocalRemap[triTable[CubeIndex,i]] = NewVertexCount;
-				NewVertexCount++;
-			}
-
-			triangles.Add( idx + LocalRemap[triTable[CubeIndex, i]] );
-		}
-		#endregion
-
-		#region high quality but bigger vertices number
-//		for(int i = 0; i < 5; i++)
-//		{
-//			if(triTable[CubeIndex,3*i] < 0) break;
-//			
-//			int idx = vertices.Count;
-//			
-//			for(int j = 0; j < 3; j++)
-//			{
-//				int vert = triTable[CubeIndex,3*i+j];
-//				triangles.Add(idx+windingOrder[j]);
-//				vertices.Add(VertexList[vert]);
-//			}
-//		}
-		#endregion
-
+		Destroy(filter.mesh);
 	}
-
+	
 	/*
 	   Linearly interpolate the position where an isosurface cuts
 	   an edge between two vertices, each with their own scalar value
