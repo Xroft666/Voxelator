@@ -11,12 +11,16 @@ using System.Linq;
 //http://books.google.dk/books?id=ZFrlULckWdAC&pg=PA9&redir_esc=y#v=onepage&q&f=false
 //http://www.siafoo.net/snippet/100
 
-//public class GRIDCELL 
-//{
-//	public float density = -1f;	
-//   	public int[] indices = new int[4];	
-//	public Vector3 position = Vector3;
-//};
+public class GRIDCELL 
+{
+	public float density = -1f;	
+	public int[] edgeIndices = new int[]
+	{
+		-1,-1,-1,-1,-1,-1,
+		-1,-1,-1,-1,-1,-1
+	};	
+//	public Vector3 position = Vector3.zero;
+};
 
 public class MarchingCubes : MonoBehaviour 
 {
@@ -363,112 +367,241 @@ public class MarchingCubes : MonoBehaviour
 		{0.0f, 0.0f, 1.0f},{0.0f, 0.0f, 1.0f},{ 0.0f, 0.0f, 1.0f},{0.0f,  0.0f, 1.0f}
 	};
 
+//	int [,] adjecencyEdges = new int[,]
+//	{
+//		{1,3}, {5,7}, {9,8}, {10,11},	// right voxel
+//		{2,0}, {10,9}, {6,4}, {11,8},	// up voxel
+//		{7,3}, {4,0}, {5,1}, {6,2}
+//	};
+//
+//	int [] adjecencyEdgesMap = new int[]
+//	{
+//		9,5,10,1,	// left voxel
+//		2,10,6,11,	// bottom voxel
+//		4,5,6,7		// back
+//	};
+	
+
 	int[] windingOrder = new int[] { 0, 1, 2 };
 	
 	public MeshFilter filter;
 	
 	public int gridSize = 20;
 	public int gridDensity = 1;
+	public bool optimizeAlgorythm = false;
 	
 	void Start()
 	{		
 		filter.mesh = new Mesh();
 
-		float[,,] voxelsData = new float[gridSize,gridSize,gridSize];
+		GRIDCELL[,,] voxelsData = new GRIDCELL[gridSize,gridSize,gridSize];
 
 		// Voxel vertices density (currently, just a sphere formula: x^2 + y^2 + z^2 >= R)
 		for( int x = 0; x < gridSize; x ++ )
+		{
 			for( int y = 0; y < gridSize; y ++ )
-				for( int z = 0; z < gridSize; z ++ )
 			{
-				voxelsData[x,y,z] = (x - gridSize / 2f) * (x - gridSize / 2f) + 
-									(y - gridSize / 2f) * (y - gridSize / 2f) + 
-									(z - gridSize / 2f) * (z - gridSize / 2f) <= gridSize * gridSize / 4f? 1f : -1f;
+				for( int z = 0; z < gridSize; z ++ )
+				{
+					voxelsData[x,y,z] = new GRIDCELL();
+					voxelsData[x,y,z].density = ((float)x - gridSize / 2f) * ((float)x - gridSize / 2f) + 
+												((float)y - gridSize / 2f) * ((float)y - gridSize / 2f) + 
+												((float)z - gridSize / 2f) * ((float)z - gridSize / 2f) <= gridSize * gridSize / 4f? 1f : -1f;
+//					voxelsData[x,y,z].position = new Vector3((float) x, (float) y, (float) z);
+				}
 			}
-			
-		
+		}	
+
+		int lastIndex = 0;
 		List<int> totalTriangles = new List<int>();
 		List<Vector3> totalVertices = new List<Vector3>();
 
 
 		// Taking out triangles from every voxel
 		for( int x = 0; x < gridSize - 1; x ++ )
+		{
 			for( int y = 0; y < gridSize - 1; y ++ )
+			{
 				for( int z = 0; z < gridSize - 1; z ++ )
 				{
 					//Determine the index into the edge table which
 					//tells us which vertices are inside of the surface
 					int CubeIndex = 0;
-					
+								
 					Vector3[] VertexList = new Vector3[12];
-					int[] LocalRemap = new int[12];
-					
+
 					for(int i = 0; i < 8; i++) 
+					{
 						if( voxelsData[ x + vertexOffset[i, 0], 
 					              		y + vertexOffset[i, 1],
-					              		z + vertexOffset[i, 2]] < 0.0f) 
+					              		z + vertexOffset[i, 2]].density < 0.0f) 
+						{
 							CubeIndex |= 1 << i;
-			
+						}
+					}
+					
 					//Cube is entirely in/out of the surface
 					if (edgeTable[CubeIndex] == 0)
+					{
 						continue;
-
-
+					}
+					
 					
 					//Find the vertices where the surface intersects the cube
 					for( int i = 0; i < 12; i++ )
+					{
 						if((edgeTable[CubeIndex] & (1 << i )) == (1 << i ) )
 						{
 							float offset = GetOffset(	voxelsData[ x + vertexOffset[edgeConnection[i,0], 0],
-					                                    			y + vertexOffset[edgeConnection[i,0], 1],
-					                                    			z + vertexOffset[edgeConnection[i,0], 2]], 
-
-					                         			voxelsData[ x + vertexOffset[edgeConnection[i,1], 0],
-					                         						y + vertexOffset[edgeConnection[i,1], 1],
-					                         						z + vertexOffset[edgeConnection[i,1], 2]]);
+						                                			y + vertexOffset[edgeConnection[i,0], 1],
+						                                			z + vertexOffset[edgeConnection[i,0], 2]].density, 
+					
+						                     			voxelsData[ x + vertexOffset[edgeConnection[i,1], 0],
+						                     						y + vertexOffset[edgeConnection[i,1], 1],
+						                     						z + vertexOffset[edgeConnection[i,1], 2]].density);
 							
 							VertexList[i].x = x + (vertexOffset[edgeConnection[i,0],0] + offset * edgeDirection[i,0]);
 							VertexList[i].y = y + (vertexOffset[edgeConnection[i,0],1] + offset * edgeDirection[i,1]);
 							VertexList[i].z = z + (vertexOffset[edgeConnection[i,0],2] + offset * edgeDirection[i,2]);
-						
-						}
-
-					for(int i = 0; i < 5; i++)
-					{
-						if(triTable[CubeIndex,3*i] < 0) break;
-						
-						int idx = totalVertices.Count;
-						
-						for(int j = 0; j < 3; j++)
-						{
-							int vert = triTable[CubeIndex,3*i+j];
-							totalTriangles.Add(idx+windingOrder[j]);
-							totalVertices.Add(VertexList[vert]);
 						}
 					}
 
-//					int NewVertexCount = 0;
-//					int idx = totalVertices.Count;
-//					for (int i = 0; triTable[CubeIndex,i] != -1; i++)
-//					{
-//						if(LocalRemap[triTable[CubeIndex,i]] == -1)
-//						{
-//							totalVertices.Add(VertexList[triTable[CubeIndex,i]]);
-//							LocalRemap[triTable[CubeIndex,i]] = NewVertexCount;
-//							NewVertexCount++;
-//						}
-//					
-//						totalTriangles.Add( idx + LocalRemap[triTable[CubeIndex, i]] );
-//					}
+
+					for(int i = 0; i < 5; i++)
+					{
+						if(triTable[CubeIndex,3*i] < 0) 
+						{
+							break;
+						}
+
+				
+						for(int j = 0; j < 3; j++)
+						{
+							int localVertIndex = triTable[CubeIndex,3 * i + j];
+							int vertIndex = lastIndex; 
+							bool newVert = true;
+
+							#region Mesh Optimization. With size of 20, instead of 9888 vert it makes it 1704 with worse quality
+							// Global remapping of vertices to save shared ones
+
+							if ( optimizeAlgorythm )
+							{
+								if( x > 0 )	// taking the left voxel
+								{
+									GRIDCELL left = voxelsData[x - 1,y,z];
+								
+									if( localVertIndex == 8 ) 
+									{ 
+										vertIndex = left.edgeIndices[9]; 
+										newVert = false; 
+									}
+									if( localVertIndex == 7 ) 
+									{ 
+										vertIndex = left.edgeIndices[5]; 
+										newVert = false; 
+									}
+									if( localVertIndex == 11 ) 
+									{ 
+										vertIndex = left.edgeIndices[10]; 
+										newVert = false; 
+									}
+									if( localVertIndex == 3 ) 
+									{ 
+										vertIndex = left.edgeIndices[1]; 
+										newVert = false; 
+									}
+								}
+								
+								if( y > 0 )	// taking the left voxel
+								{
+									GRIDCELL bottom = voxelsData[x,y - 1,z];
+											
+									if( localVertIndex == 0 ) 
+									{ 
+										vertIndex = bottom.edgeIndices[2]; 
+										newVert = false; 
+									}
+									if( localVertIndex == 9 ) 
+									{ 
+										vertIndex = bottom.edgeIndices[10]; 
+										newVert = false; 
+									}
+									if( localVertIndex == 4 ) 
+									{ 
+										vertIndex = bottom.edgeIndices[6]; 
+										newVert = false; 
+									}
+									if( localVertIndex == 8 ) 
+									{ 
+										vertIndex = bottom.edgeIndices[11]; 
+										newVert = false; 
+									}
+								}
+								
+								if( z > 0 )	// taking the left voxel
+								{
+									GRIDCELL back = voxelsData[x,y,z - 1];
+											
+									if( localVertIndex == 0 ) 
+									{ 
+										vertIndex = back.edgeIndices[4]; 
+										newVert = false; 
+									}
+									if( localVertIndex == 1 ) 
+									{ 
+										vertIndex = back.edgeIndices[5];
+										newVert = false; 
+									}
+									if( localVertIndex == 2 ) 
+									{ 
+										vertIndex = back.edgeIndices[6]; 
+										newVert = false; 
+									}
+									if( localVertIndex == 3 ) 
+									{ 
+										vertIndex = back.edgeIndices[7]; 
+										newVert = false; 
+									}
+								}
+								
+								if(  voxelsData[x,y,z].edgeIndices[localVertIndex] < 0 )
+                           			voxelsData[x,y,z].edgeIndices[localVertIndex] = vertIndex;
+								else
+								{
+									vertIndex = voxelsData[x,y,z].edgeIndices[localVertIndex];
+									newVert = false;
+								}
+							}
+							#endregion
+
+                            totalTriangles.Add(vertIndex);
+
+                            if( newVert ) 
+                            {
+								// The trong problems is that I don't try to share those vertices
+								// that have been created inside of current voxel
+                                totalVertices.Add(VertexList[localVertIndex]);
+								lastIndex = totalVertices.Count;
+                            }
+						}
+					}	
 
 				}
-	
-		
+			}
+		}
+			
+		if( totalVertices.Count > 65000 )
+		{
+			Debug.LogError("Vertices count cannot be more than 65000.");
+			return;
+		}
+					
 		// Applying all the triangles to the mesh
 		filter.mesh.vertices = totalVertices.ToArray();
 		filter.mesh.triangles = totalTriangles.ToArray();
 		filter.mesh.uv = new Vector2[totalVertices.Count];
 
+		
 		filter.mesh.RecalculateNormals();
 	}
 
