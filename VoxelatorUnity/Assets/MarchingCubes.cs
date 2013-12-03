@@ -1,8 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-using System.Linq;
-
 // references
 // http://graphics.stanford.edu/~mdfisher/MarchingCubes.html
 // http://scrawkblog.com/2013/04/01/marching-cubes-plugin-for-unity/
@@ -19,10 +17,12 @@ public class GRIDCELL
 		-1,-1,-1,-1,-1,-1,
 		-1,-1,-1,-1,-1,-1
 	};	
-//	public Vector3 position = Vector3.zero;
+	public Vector3 position = Vector3.zero;
 };
 
-public class MarchingCubes : MonoBehaviour 
+public delegate float FillInVoxelsDataProcessor(object[] parameters);
+
+public class MarchingCubes  
 {
 	
 	//marching cubes table data
@@ -37,7 +37,7 @@ public class MarchingCubes : MonoBehaviour
 	// 12 (and not 8) becase a voxel cubic might have
 	// more vertices than 8: for intsnace in the middle
 	
-	int[] edgeTable = new int[256]{
+	private static int[] edgeTable = new int[256]{
 	0x0  , 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
 	0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
 	0x190, 0x99 , 0x393, 0x29a, 0x596, 0x49f, 0x795, 0x69c,
@@ -79,7 +79,7 @@ public class MarchingCubes : MonoBehaviour
 	// here are the vertices indecies for triangles.
 	// Up to 5 triangles (5 * 3 ) + one "-1" slot just to take foreach down
 	
-	int[,] triTable = new int[256,16]
+	private static int[,] triTable = new int[256,16]
 	{{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 	{0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 	{0, 1, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
@@ -341,7 +341,7 @@ public class MarchingCubes : MonoBehaviour
 	// vertexOffset lists the positions, relative to vertex0, of each of the 8 vertices of a cube
 	// vertexOffset[8][3]
 	
-	int[,] vertexOffset = new int[,]
+	private static int[,] vertexOffset = new int[,]
 	{
 		{0, 0, 0},{1, 0, 0},{1, 1, 0},{0, 1, 0},
 		{0, 0, 1},{1, 0, 1},{1, 1, 1},{0, 1, 1}
@@ -350,7 +350,7 @@ public class MarchingCubes : MonoBehaviour
 	// edgeConnection lists the index of the endpoint vertices for each of the 12 edges of the cube
 	// edgeConnection[12][2]
 	
-	int[,] edgeConnection = new int[,] 
+	private static int[,] edgeConnection = new int[,] 
 	{
 		{0,1}, {1,2}, {2,3}, {3,0},
 		{4,5}, {5,6}, {6,7}, {7,4},
@@ -360,43 +360,18 @@ public class MarchingCubes : MonoBehaviour
 	// edgeDirection lists the direction vector (vertex1-vertex0) for each edge in the cube
 	// edgeDirection[12][3]
 	
-	float[,] edgeDirection = new float[,]
+	private static float[,] edgeDirection = new float[,]
 	{
 		{1.0f, 0.0f, 0.0f},{0.0f, 1.0f, 0.0f},{-1.0f, 0.0f, 0.0f},{0.0f, -1.0f, 0.0f},
 		{1.0f, 0.0f, 0.0f},{0.0f, 1.0f, 0.0f},{-1.0f, 0.0f, 0.0f},{0.0f, -1.0f, 0.0f},
 		{0.0f, 0.0f, 1.0f},{0.0f, 0.0f, 1.0f},{ 0.0f, 0.0f, 1.0f},{0.0f,  0.0f, 1.0f}
 	};
 
-//	int [,] adjecencyEdges = new int[,]
-//	{
-//		{1,3}, {5,7}, {9,8}, {10,11},	// right voxel
-//		{2,0}, {10,9}, {6,4}, {11,8},	// up voxel
-//		{7,3}, {4,0}, {5,1}, {6,2}
-//	};
-//
-//	int [] adjecencyEdgesMap = new int[]
-//	{
-//		9,5,10,1,	// left voxel
-//		2,10,6,11,	// bottom voxel
-//		4,5,6,7		// back
-//	};
 	
-
-	int[] windingOrder = new int[] { 0, 1, 2 };
-	
-	public MeshFilter filter;
-	
-	public int gridSize = 20;
-	public int gridDensity = 1;
-	public bool optimizeAlgorythm = false;
-	
-	void Start()
+	public static void FillVoxelData(FillInVoxelsDataProcessor proc, Vector3 pivot, int gridSize, float scale, out GRIDCELL[,,] voxelsData)
 	{		
-		filter.mesh = new Mesh();
+		voxelsData = new GRIDCELL[gridSize,gridSize,gridSize];
 
-		GRIDCELL[,,] voxelsData = new GRIDCELL[gridSize,gridSize,gridSize];
-
-		// Voxel vertices density (currently, just a sphere formula: x^2 + y^2 + z^2 >= R)
 		for( int x = 0; x < gridSize; x ++ )
 		{
 			for( int y = 0; y < gridSize; y ++ )
@@ -404,25 +379,28 @@ public class MarchingCubes : MonoBehaviour
 				for( int z = 0; z < gridSize; z ++ )
 				{
 					voxelsData[x,y,z] = new GRIDCELL();
-					voxelsData[x,y,z].density = ((float)x - gridSize / 2f) * ((float)x - gridSize / 2f) + 
-												((float)y - gridSize / 2f) * ((float)y - gridSize / 2f) + 
-												((float)z - gridSize / 2f) * ((float)z - gridSize / 2f) <= gridSize * gridSize / 4f? 1f : -1f;
-//					voxelsData[x,y,z].position = new Vector3((float) x, (float) y, (float) z);
+	
+					voxelsData[x,y,z].density = proc(new object[]{x + pivot.x, y + pivot.y, z + pivot.z});
+
+					voxelsData[x,y,z].position = new Vector3((float) x, (float) y, (float) z) * scale + pivot;
 				}
 			}
-		}	
+		}
+	}
 
+	public static void GenerateChunk(GRIDCELL[,,] voxelsData, bool optimized, out int[] indices, out Vector3[] vertices) 
+	{
 		int lastIndex = 0;
 		List<int> totalTriangles = new List<int>();
 		List<Vector3> totalVertices = new List<Vector3>();
 
 
 		// Taking out triangles from every voxel
-		for( int x = 0; x < gridSize - 1; x ++ )
+		for( int x = 0; x < voxelsData.GetLength(0) - 1; x ++ )
 		{
-			for( int y = 0; y < gridSize - 1; y ++ )
+			for( int y = 0; y < voxelsData.GetLength(1) - 1; y ++ )
 			{
-				for( int z = 0; z < gridSize - 1; z ++ )
+				for( int z = 0; z < voxelsData.GetLength(2) - 1; z ++ )
 				{
 					//Determine the index into the edge table which
 					//tells us which vertices are inside of the surface
@@ -452,7 +430,7 @@ public class MarchingCubes : MonoBehaviour
 					{
 						if((edgeTable[CubeIndex] & (1 << i )) == (1 << i ) )
 						{
-							float offset = GetOffset(	voxelsData[ x + vertexOffset[edgeConnection[i,0], 0],
+							float offset = Interpolate(	voxelsData[ x + vertexOffset[edgeConnection[i,0], 0],
 						                                			y + vertexOffset[edgeConnection[i,0], 1],
 						                                			z + vertexOffset[edgeConnection[i,0], 2]].density, 
 					
@@ -460,9 +438,9 @@ public class MarchingCubes : MonoBehaviour
 						                     						y + vertexOffset[edgeConnection[i,1], 1],
 						                     						z + vertexOffset[edgeConnection[i,1], 2]].density);
 							
-							VertexList[i].x = x + (vertexOffset[edgeConnection[i,0],0] + offset * edgeDirection[i,0]);
-							VertexList[i].y = y + (vertexOffset[edgeConnection[i,0],1] + offset * edgeDirection[i,1]);
-							VertexList[i].z = z + (vertexOffset[edgeConnection[i,0],2] + offset * edgeDirection[i,2]);
+							VertexList[i].x = voxelsData[x,y,z].position.x + (vertexOffset[edgeConnection[i,0],0] + offset * edgeDirection[i,0]);
+							VertexList[i].y = voxelsData[x,y,z].position.y + (vertexOffset[edgeConnection[i,0],1] + offset * edgeDirection[i,1]);
+							VertexList[i].z = voxelsData[x,y,z].position.z + (vertexOffset[edgeConnection[i,0],2] + offset * edgeDirection[i,2]);
 						}
 					}
 
@@ -484,7 +462,7 @@ public class MarchingCubes : MonoBehaviour
 							#region Mesh Optimization. With size of 20, instead of 9888 vert it makes it 1704 with worse quality
 							// Global remapping of vertices to save shared ones
 
-							if ( optimizeAlgorythm )
+							if ( optimized )
 							{
 								if( x > 0 )	// taking the left voxel
 								{
@@ -580,7 +558,7 @@ public class MarchingCubes : MonoBehaviour
                             {
 								// The trong problems is that I don't try to share those vertices
 								// that have been created inside of current voxel
-                                totalVertices.Add(VertexList[localVertIndex]);
+								totalVertices.Add(VertexList[localVertIndex]);
 								lastIndex = totalVertices.Count;
                             }
 						}
@@ -593,33 +571,17 @@ public class MarchingCubes : MonoBehaviour
 		if( totalVertices.Count > 65000 )
 		{
 			Debug.LogError("Vertices count cannot be more than 65000.");
+			vertices = null;
+			indices = null;
 			return;
 		}
-					
-		// Applying all the triangles to the mesh
-		filter.mesh.vertices = totalVertices.ToArray();
-		filter.mesh.triangles = totalTriangles.ToArray();
-		filter.mesh.uv = new Vector2[totalVertices.Count];
 
-		
-		filter.mesh.RecalculateNormals();
+		vertices = totalVertices.ToArray();
+		indices = totalTriangles.ToArray();
 	}
 
-	void OnDestroy()
-	{
-		Destroy(filter.mesh);
-	}
-	
-	/*
-	   Linearly interpolate the position where an isosurface cuts
-	   an edge between two vertices, each with their own scalar value
-	*/
-	Vector3 VertexInterp(Vector3 p1, Vector3 p2, float valp1, float valp2)
-	{
-		return (p1 + (-valp1 / (valp2 - valp1)) * (p2 - p1));
-	}
 
-	float GetOffset(float v1, float v2)
+	private static float Interpolate(float v1, float v2)
 	{
 		float delta = v2 - v1;
 		return (delta == 0.0f) ? 0.5f : (0f - v1)/delta;
