@@ -8,6 +8,13 @@ public class CustomTerrain : MonoBehaviour
 	public int clusterSize = 5;
 	public float gridScale = 1f;
 	public bool optimizeAlgorythm = false;
+	public int terrainMinHeight = 0;
+	public int terrainMaxHeight = 100;
+
+	public int octaves = 3;
+	public float frequency = 40f;
+	public float amplitude = 1f;
+
 
 	private SimplexNoise3D simpleNoise;
 	private PerlinNoise perlinNise;
@@ -30,7 +37,7 @@ public class CustomTerrain : MonoBehaviour
 				TerrainCluster terrainChunk = chunkGO.AddComponent<TerrainCluster>();
 				
 				GRIDCELL[,,] grid;
-				MarchingCubes.FillVoxelData(FillSimpleNoise, clasterOffset, clusterSize, gridScale, out grid);
+				MarchingCubes.FillVoxelData(MobraNoise, clasterOffset, clusterSize, gridScale, out grid);
 				
 				Vector3[] vertices;
 				int[] indices;
@@ -63,11 +70,17 @@ public class CustomTerrain : MonoBehaviour
 
 	float FillPerlinNoise(object[] parameters)
 	{
+
 		float x = (float) parameters[0];
 		float y = (float) parameters[1];
 		float z = (float) parameters[2];
 
-		return perlinNise.FractalNoise3D(x,y,z, 3, 40f, 1f);
+		if (y < terrainMinHeight)
+			return 1f;
+		else if (y > terrainMaxHeight)
+			return -1;
+		else
+			return perlinNise.FractalNoise3D(x,y,z, 3, 40f, 1f);
 	}
 
 	float FillSimpleNoise(object[] parameters)
@@ -77,5 +90,33 @@ public class CustomTerrain : MonoBehaviour
 		float z = (float) parameters[2];
 		
 		return simpleNoise.CoherentNoise(x,y,z, 3, 40, 1f, 2f, 0.9f);
+	}
+
+	float MobraNoise(object[] parameters)
+	{
+		float x = (float) parameters[0];
+		float y = (float) parameters[1];
+		float z = (float) parameters[2];
+
+
+
+		if (y < terrainMinHeight)
+			return 1f;
+		else if (y > terrainMaxHeight)
+			return -1;
+		else
+		{
+			float gain = 1.0f;
+			float sum = 0.0f;
+			
+			for(int i = 0; i < octaves; i++)
+			{
+				sum += perlinNise.Noise3D(x*gain/frequency, y*gain/frequency, z*gain/frequency) * amplitude/gain;
+				gain *= 2.0f;
+			}
+			return sum;
+		}
+
+
 	}
 }

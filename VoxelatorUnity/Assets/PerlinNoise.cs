@@ -118,7 +118,7 @@ public class PerlinNoise
 	    return 0.507f * LERP( s, n0, n1 );
 	}
 	
-	float Noise3D( float x, float y, float z )
+	public float Noise3D( float x, float y, float z )
 	{
 		//returns a noise value between -1.5 and 1.5
 	    int ix0, iy0, ix1, iy1, iz0, iz1;

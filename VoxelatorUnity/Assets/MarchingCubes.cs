@@ -24,7 +24,7 @@ public delegate float FillInVoxelsDataProcessor(object[] parameters);
 
 public class MarchingCubes  
 {
-	
+	public int terrainH = 0;
 	//marching cubes table data
 	
 	// ** my comments ** //
@@ -377,13 +377,14 @@ public class MarchingCubes
 			for( int y = 0; y <= gridSize; y ++ )
 			{
 				for( int z = 0; z <= gridSize; z ++ )
-				{
-					voxelsData[x,y,z] = new GRIDCELL();
-	
-					voxelsData[x,y,z].density = proc(new object[]{x + pivot.x, y + pivot.y, z + pivot.z});
+					{
+						voxelsData[x,y,z] = new GRIDCELL();
+						
+						voxelsData[x,y,z].density = proc(new object[]{x + pivot.x, y + pivot.y, z + pivot.z});
+						
+						voxelsData[x,y,z].position = new Vector3((float) x, (float) y, (float) z) * scale + pivot;
+					}
 
-					voxelsData[x,y,z].position = new Vector3((float) x, (float) y, (float) z) * scale + pivot;
-				}
 			}
 		}
 	}
