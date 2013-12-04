@@ -370,13 +370,13 @@ public class MarchingCubes
 	
 	public static void FillVoxelData(FillInVoxelsDataProcessor proc, Vector3 pivot, int gridSize, float scale, out GRIDCELL[,,] voxelsData)
 	{		
-		voxelsData = new GRIDCELL[gridSize,gridSize,gridSize];
+		voxelsData = new GRIDCELL[gridSize+1,gridSize+1,gridSize+1];
 
-		for( int x = 0; x < gridSize; x ++ )
+		for( int x = 0; x <= gridSize; x ++ )
 		{
-			for( int y = 0; y < gridSize; y ++ )
+			for( int y = 0; y <= gridSize; y ++ )
 			{
-				for( int z = 0; z < gridSize; z ++ )
+				for( int z = 0; z <= gridSize; z ++ )
 				{
 					voxelsData[x,y,z] = new GRIDCELL();
 	
@@ -570,7 +570,7 @@ public class MarchingCubes
 			
 		if( totalVertices.Count > 65000 )
 		{
-			Debug.LogError("Vertices count cannot be more than 65000.");
+			Debug.LogError("Vertices count cannot be more than 65000. Reduce cluster size.");
 			vertices = null;
 			indices = null;
 			return;

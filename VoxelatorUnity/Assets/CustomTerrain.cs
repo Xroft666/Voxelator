@@ -9,13 +9,13 @@ public class CustomTerrain : MonoBehaviour
 	public float gridScale = 1f;
 	public bool optimizeAlgorythm = false;
 
-
+	private SimplexNoise3D simpleNoise;
 	private PerlinNoise perlinNise;
 
 	void Start()
 	{
 		perlinNise = new PerlinNoise(1);
-
+		simpleNoise = new SimplexNoise3D();
 		Vector3 clasterOffset = Vector3.zero;
 
 		for( int i = 0; i < clustersDimension; i++ )
@@ -30,7 +30,7 @@ public class CustomTerrain : MonoBehaviour
 				TerrainCluster terrainChunk = chunkGO.AddComponent<TerrainCluster>();
 				
 				GRIDCELL[,,] grid;
-				MarchingCubes.FillVoxelData(FillPerlinNoise, clasterOffset, clusterSize, gridScale, out grid);
+				MarchingCubes.FillVoxelData(FillSimpleNoise, clasterOffset, clusterSize, gridScale, out grid);
 				
 				Vector3[] vertices;
 				int[] indices;
@@ -68,5 +68,14 @@ public class CustomTerrain : MonoBehaviour
 		float z = (float) parameters[2];
 
 		return perlinNise.FractalNoise3D(x,y,z, 3, 40f, 1f);
+	}
+
+	float FillSimpleNoise(object[] parameters)
+	{
+		float x = (float) parameters[0];
+		float y = (float) parameters[1];
+		float z = (float) parameters[2];
+		
+		return simpleNoise.CoherentNoise(x,y,z, 3, 40, 1f, 2f, 0.9f);
 	}
 }
