@@ -380,9 +380,15 @@ public class MarchingCubes
 					{
 						voxelsData[x,y,z] = new GRIDCELL();
 						
-						voxelsData[x,y,z].density = proc(new object[]{x + pivot.x, y + pivot.y, z + pivot.z});
+//						voxelsData[x,y,z].density = proc(new object[]{x + pivot.x, y + pivot.y, z + pivot.z});
+						float density = proc(new object[]{x + pivot.x, y + pivot.y, z + pivot.z});
+						int height = (int) (density * 20f);
 						
-						voxelsData[x,y,z].position = new Vector3((float) x, (float) y, (float) z) * scale + pivot;
+						if( height == y ) voxelsData[x,y,z].density = density;
+						if( height > y ) voxelsData[x,y,z].density = 1f;
+						if( height < y ) voxelsData[x,y,z].density = -1f;
+
+						voxelsData[x,y,z].position = new Vector3((float) x, (float) height, (float) z) * scale + pivot;
 					}
 
 			}

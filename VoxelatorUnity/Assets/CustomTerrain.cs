@@ -37,7 +37,7 @@ public class CustomTerrain : MonoBehaviour
 				TerrainCluster terrainChunk = chunkGO.AddComponent<TerrainCluster>();
 				
 				GRIDCELL[,,] grid;
-				MarchingCubes.FillVoxelData(MobraNoise, clasterOffset, clusterSize, gridScale, out grid);
+				MarchingCubes.FillVoxelData(Fill2DNoise, clasterOffset, clusterSize, gridScale, out grid);
 				
 				Vector3[] vertices;
 				int[] indices;
@@ -116,7 +116,13 @@ public class CustomTerrain : MonoBehaviour
 			}
 			return sum;
 		}
+	}
 
-
+	float Fill2DNoise(object[] parameters)
+	{
+		float x = (float) parameters[0];
+		float z = (float) parameters[2];
+		
+		return perlinNise.FractalNoise2D(x,z, 3, 40f, 1f);
 	}
 }
