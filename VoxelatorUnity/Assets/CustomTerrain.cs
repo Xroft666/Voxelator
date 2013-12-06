@@ -121,8 +121,9 @@ public class CustomTerrain : MonoBehaviour
 	float Fill2DNoise(object[] parameters)
 	{
 		float x = (float) parameters[0];
+		float y = (float) parameters[1];
 		float z = (float) parameters[2];
 		
-		return perlinNise.FractalNoise2D(x,z, 3, 40f, 1f);
+		return perlinNise.FractalNoise2D(x,z, 3, 40f, 1f)/* * perlinNise.FractalNoise3D(x,y,z, 5, 20f, 0.5f)*/;
 	}
 }

@@ -372,6 +372,7 @@ public class MarchingCubes
 	{		
 		voxelsData = new GRIDCELL[gridSize+1,gridSize+1,gridSize+1];
 
+		// heightmap
 		for( int x = 0; x <= gridSize; x ++ )
 		{
 			for( int y = 0; y <= gridSize; y ++ )
@@ -384,11 +385,11 @@ public class MarchingCubes
 						float density = proc(new object[]{x + pivot.x, y + pivot.y, z + pivot.z});
 						int height = (int) (density * 20f);
 						
-						if( height == y ) voxelsData[x,y,z].density = density;
-						if( height > y ) voxelsData[x,y,z].density = 1f;
+//						if( height == y ) voxelsData[x,y,z].density = density;
+						if( height >= y ) voxelsData[x,y,z].density = 1f;
 						if( height < y ) voxelsData[x,y,z].density = -1f;
 
-						voxelsData[x,y,z].position = new Vector3((float) x, (float) height, (float) z) * scale + pivot;
+						voxelsData[x,y,z].position = new Vector3((float) x, (float) height, (float) z) + pivot;
 					}
 
 			}
@@ -444,10 +445,11 @@ public class MarchingCubes
 						                     			voxelsData[ x + vertexOffset[edgeConnection[i,1], 0],
 						                     						y + vertexOffset[edgeConnection[i,1], 1],
 						                     						z + vertexOffset[edgeConnection[i,1], 2]].density);
-							
-							VertexList[i].x = voxelsData[x,y,z].position.x + (vertexOffset[edgeConnection[i,0],0] + offset * edgeDirection[i,0]);
-							VertexList[i].y = voxelsData[x,y,z].position.y + (vertexOffset[edgeConnection[i,0],1] + offset * edgeDirection[i,1]);
-							VertexList[i].z = voxelsData[x,y,z].position.z + (vertexOffset[edgeConnection[i,0],2] + offset * edgeDirection[i,2]);
+
+							// dont know when vertexOffset thing appeared in here, but it had + and did dragon skin
+							VertexList[i].x = voxelsData[x,y,z].position.x + (vertexOffset[edgeConnection[i,0],0] * offset * edgeDirection[i,0]);
+							VertexList[i].y = voxelsData[x,y,z].position.y + (vertexOffset[edgeConnection[i,0],1] * offset * edgeDirection[i,1]);
+							VertexList[i].z = voxelsData[x,y,z].position.z + (vertexOffset[edgeConnection[i,0],2] * offset * edgeDirection[i,2]);
 						}
 					}
 
