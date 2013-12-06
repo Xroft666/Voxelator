@@ -24,7 +24,15 @@ public delegate float FillInVoxelsDataProcessor(object[] parameters);
 
 public class MarchingCubes  
 {
-	public int terrainH = 0;
+	public Color32[] terrainColor = new Color32[]{
+		Color32(0, 0, 128),
+		Color32(0, 128, 255 ), 
+		Color32(240, 240, 64),
+		Color32(32, 160, 0),
+		Color32(224, 224, 0),
+		Color32(128, 128, 128),
+		Color32(255, 255, 255)
+	};
 	//marching cubes table data
 	
 	// ** my comments ** //
@@ -401,6 +409,8 @@ public class MarchingCubes
 		int lastIndex = 0;
 		List<int> totalTriangles = new List<int>();
 		List<Vector3> totalVertices = new List<Vector3>();
+		List<Color32> totalColors = new List<Color32>();
+
 
 
 		// Taking out triangles from every voxel
@@ -568,6 +578,8 @@ public class MarchingCubes
 								// The trong problems is that I don't try to share those vertices
 								// that have been created inside of current voxel
 								totalVertices.Add(VertexList[localVertIndex]);
+								totalColors.Add(terrainc());
+
 								lastIndex = totalVertices.Count;
                             }
 						}
