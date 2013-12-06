@@ -24,15 +24,7 @@ public delegate float FillInVoxelsDataProcessor(object[] parameters);
 
 public class MarchingCubes  
 {
-	public Color32[] terrainColor = new Color32[]{
-		Color32(0, 0, 128),
-		Color32(0, 128, 255 ), 
-		Color32(240, 240, 64),
-		Color32(32, 160, 0),
-		Color32(224, 224, 0),
-		Color32(128, 128, 128),
-		Color32(255, 255, 255)
-	};
+
 	//marching cubes table data
 	
 	// ** my comments ** //
@@ -404,6 +396,11 @@ public class MarchingCubes
 		}
 	}
 
+//	public static void ColorProcessor(Vector3 height)
+//	{
+//		if (height == )
+//	}
+
 	public static void GenerateChunk(GRIDCELL[,,] voxelsData, bool optimized, out int[] indices, out Vector3[] vertices) 
 	{
 		int lastIndex = 0;
@@ -425,6 +422,17 @@ public class MarchingCubes
 					int CubeIndex = 0;
 								
 					Vector3[] VertexList = new Vector3[12];
+
+//					Color32[] terrainColor = new Color32[]{
+//						Color32(0, 0, 128),
+//						Color32(0, 128, 255 ), 
+//						Color32(240, 240, 64),
+//						Color32(32, 160, 0),
+//						Color32(224, 224, 0),
+//						Color32(128, 128, 128),
+//						Color32(255, 255, 255)
+//					};
+
 
 					for(int i = 0; i < 8; i++) 
 					{
@@ -578,7 +586,7 @@ public class MarchingCubes
 								// The trong problems is that I don't try to share those vertices
 								// that have been created inside of current voxel
 								totalVertices.Add(VertexList[localVertIndex]);
-								totalColors.Add(terrainc());
+								totalColors.Add(AddColors(voxelsData[x,y,z].position.y));
 
 								lastIndex = totalVertices.Count;
                             }
