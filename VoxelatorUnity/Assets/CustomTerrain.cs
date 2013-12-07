@@ -15,15 +15,25 @@ public class CustomTerrain : MonoBehaviour
 	public float frequency = 40f;
 	public float amplitude = 1f;
 
-	public Color32[] terrainColor = new Color32[]{
-		new Color32(0, 0, 128, 1),
-		new Color32(0, 128, 255, 1 ), 
-		new Color32(240, 240, 64, 1),
-		new Color32(32, 160, 0, 1),
-		new Color32(224, 224, 0, 1),
-		new Color32(128, 128, 128, 1),
-		new Color32(255, 255, 255, 1)
+
+	private Color[] terrainColor = new Color[]{
+		new Color(0, 0, 0.5f),
+		new Color(0, 0.5f, 1 ), 
+		new Color(1, 1, 0.5f),
+		new Color(0.5f, 1, 0),
+		new Color(1, 1, 0),
+		new Color(0.5f, 0.5f, 0.5f),
+		new Color(1, 1, 1)
 	};
+//	private Color32[] terrainColor = new Color32[7]{
+//		new Color32(0, 0, 128, 255),
+//		new Color32(0, 128, 255, 255 ), 
+//		new Color32(240, 240, 64, 255),
+//		new Color32(32, 160, 0, 255),
+//		new Color32(224, 224, 0, 255),
+//		new Color32(128, 128, 128, 255),
+//		new Color32(255, 255, 255, 255)
+//	};
 
 	private SimplexNoise3D simpleNoise;
 	private PerlinNoise perlinNise;
@@ -47,12 +57,12 @@ public class CustomTerrain : MonoBehaviour
 				
 				GRIDCELL[,,] grid;
 				MarchingCubes.FillVoxelData(Fill2DNoise, clasterOffset, clusterSize, gridScale, out grid);
-				MarchingCubes.ColorProcessor(AddColors);
+//				MarchingCubes.ColorProcessor(AddColors);
 				
 				Vector3[] vertices;
 				int[] indices;
-				Color32[] colors;
-				MarchingCubes.GenerateChunk(grid, optimizeAlgorythm, out indices, out vertices, out colors);
+				Color[] colors;
+				MarchingCubes.GenerateChunk(AddColors, grid, optimizeAlgorythm, out indices, out vertices, out colors);
 				terrainChunk.SetMeshData(indices, vertices, colors);
 			}
 		}
@@ -73,7 +83,7 @@ public class CustomTerrain : MonoBehaviour
 				(z - clusterSize / 2f) * (z - clusterSize / 2f) <= clusterSize * clusterSize / 4f? 1f : -1f;
 	}
 
-	public Color32 AddColors(float height)
+	public Color AddColors(float height)
 	{
 		if (height == terrainMinHeight)
 			return terrainColor[0];
@@ -93,11 +103,11 @@ public class CustomTerrain : MonoBehaviour
 		else if (height > (terrainMaxHeight - terrainMinHeight) / 100*70 && height < (terrainMaxHeight - terrainMinHeight) / 100*90)
 			return terrainColor[5];
 
-		else if (height > (terrainMaxHeight - terrainMinHeight) / 100*90 && height < terrainMaxHeight)
+		else if (height > (terrainMaxHeight - terrainMinHeight) / 100*90 && height <= terrainMaxHeight)
 			return terrainColor[6];
 
 		else
-			return new Color32(0,0,0,0);
+			return new Color(0,0,0);
 	
 
 

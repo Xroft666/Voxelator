@@ -21,7 +21,7 @@ public class GRIDCELL
 };
 
 public delegate float FillInVoxelsDataProcessor(object[] parameters);
-public delegate Color32 AddColorsProcessor(float height);
+public delegate Color AddColors(float height);
 
 public class MarchingCubes  
 {
@@ -397,17 +397,17 @@ public class MarchingCubes
 		}
 	}
 
-	public static void ColorProcessor(AddColorsProcessor proc)
-	{
-		
-	}
+//	public static void ColorProcessor(AddColorsProcessor proc)
+//	{
+//		
+//	}
 
-	public static void GenerateChunk(GRIDCELL[,,] voxelsData, bool optimized, out int[] indices, out Vector3[] vertices) 
+	public static void GenerateChunk(AddColors proc, GRIDCELL[,,] voxelsData, bool optimized, out int[] indices, out Vector3[] vertices, out Color[] Colors) 
 	{
 		int lastIndex = 0;
 		List<int> totalTriangles = new List<int>();
 		List<Vector3> totalVertices = new List<Vector3>();
-		List<Color32> totalColors = new List<Color32>();
+		List<Color> totalColors = new List<Color>();
 
 
 
@@ -424,14 +424,14 @@ public class MarchingCubes
 								
 					Vector3[] VertexList = new Vector3[12];
 
-//					Color32[] terrainColor = new Color32[]{
-//						Color32(0, 0, 128),
-//						Color32(0, 128, 255 ), 
-//						Color32(240, 240, 64),
-//						Color32(32, 160, 0),
-//						Color32(224, 224, 0),
-//						Color32(128, 128, 128),
-//						Color32(255, 255, 255)
+//					Color[] terrainColor = new Color[]{
+//						Color(0, 0, 128),
+//						Color(0, 128, 255 ), 
+//						Color(240, 240, 64),
+//						Color(32, 160, 0),
+//						Color(224, 224, 0),
+//						Color(128, 128, 128),
+//						Color(255, 255, 255)
 //					};
 
 
@@ -587,7 +587,7 @@ public class MarchingCubes
 								// The trong problems is that I don't try to share those vertices
 								// that have been created inside of current voxel
 								totalVertices.Add(VertexList[localVertIndex]);
-								totalColors.Add(AddColors(voxelsData[x,y,z].position.y));
+								totalColors.Add(proc(voxelsData[x,y,z].position.y));
 
 								lastIndex = totalVertices.Count;
                             }
@@ -603,11 +603,13 @@ public class MarchingCubes
 			Debug.LogError("Vertices count cannot be more than 65000. Reduce cluster size.");
 			vertices = null;
 			indices = null;
+			Colors = null;
 			return;
 		}
 
 		vertices = totalVertices.ToArray();
 		indices = totalTriangles.ToArray();
+		Colors = totalColors.ToArray();
 	}
 
 

@@ -13,12 +13,13 @@ public class TerrainCluster : MonoBehaviour
 		renderer.material = new Material(Shader.Find("Diffuse"));
 	}
 
-	public void SetMeshData(int[] indices, Vector3[] vertices)
+	public void SetMeshData(int[] indices, Vector3[] vertices, Color[] colors)
 	{
 		filter.mesh.vertices = vertices;
 		filter.mesh.triangles = indices;
 		filter.mesh.uv = new Vector2[vertices.Length];
 
+		filter.mesh.colors = colors;
 		filter.mesh.RecalculateNormals();
 	}
 
