@@ -10,6 +10,9 @@ public class CustomTerrain : MonoBehaviour
 	public bool optimizeAlgorythm = false;
 	public int terrainMinHeight = 0;
 	public int terrainMaxHeight = 100;
+	public float maxH = 20f;
+
+	public Gradient gradient;
 
 	public int octaves = 3;
 	public float frequency = 40f;
@@ -25,15 +28,17 @@ public class CustomTerrain : MonoBehaviour
 		new Color(0.5f, 0.5f, 0.5f),
 		new Color(1, 1, 1)
 	};
-//	private Color32[] terrainColor = new Color32[7]{
-//		new Color32(0, 0, 128, 255),
-//		new Color32(0, 128, 255, 255 ), 
-//		new Color32(240, 240, 64, 255),
-//		new Color32(32, 160, 0, 255),
-//		new Color32(224, 224, 0, 255),
-//		new Color32(128, 128, 128, 255),
-//		new Color32(255, 255, 255, 255)
-//	};
+
+
+	/*private Color32[] terrainColor = new Color32[]{
+		new Color32(0, 0, 128, 255),
+		new Color32(0, 128, 255, 255 ), 
+		new Color32(240, 240, 64, 255),
+		new Color32(32, 160, 0, 255),
+		new Color32(224, 224, 0, 255),
+		new Color32(128, 128, 128, 255),
+		new Color32(255, 255, 255, 255)
+	};*/
 
 	private SimplexNoise3D simpleNoise;
 	private PerlinNoise perlinNise;
@@ -56,7 +61,7 @@ public class CustomTerrain : MonoBehaviour
 				TerrainCluster terrainChunk = chunkGO.AddComponent<TerrainCluster>();
 				
 				GRIDCELL[,,] grid;
-				MarchingCubes.FillVoxelData(Fill2DNoise, clasterOffset, clusterSize, gridScale, out grid);
+				MarchingCubes.FillVoxelData(Fill2DNoise, clasterOffset, clusterSize, gridScale, out grid, maxH);
 //				MarchingCubes.ColorProcessor(AddColors);
 				
 				Vector3[] vertices;
@@ -64,6 +69,7 @@ public class CustomTerrain : MonoBehaviour
 				Color[] colors;
 				MarchingCubes.GenerateChunk(AddColors, grid, optimizeAlgorythm, out indices, out vertices, out colors);
 				terrainChunk.SetMeshData(indices, vertices, colors);
+
 			}
 		}
 	}
@@ -85,7 +91,10 @@ public class CustomTerrain : MonoBehaviour
 
 	public Color AddColors(float height)
 	{
-		if (height == terrainMinHeight)
+		return gradient.Evaluate(height / maxH);
+
+
+		/*if (height < terrainMinHeight)
 			return terrainColor[0];
 
 		else if (height > terrainMinHeight && height < (terrainMaxHeight - terrainMinHeight) / 100*10)
@@ -107,7 +116,7 @@ public class CustomTerrain : MonoBehaviour
 			return terrainColor[6];
 
 		else
-			return new Color(0,0,0);
+			return new Color32(0,0,0, 255); */
 	
 
 
@@ -172,7 +181,12 @@ public class CustomTerrain : MonoBehaviour
 		float x = (float) parameters[0];
 		float y = (float) parameters[1];
 		float z = (float) parameters[2];
-		
-		return perlinNise.FractalNoise2D(x,z, 3, 40f, 1f)/* * perlinNise.FractalNoise3D(x,y,z, 5, 20f, 0.5f)*/;
+
+		if (y < terrainMinHeight)
+			return 0;
+		else if (y > terrainMaxHeight)
+			return 0;
+		else
+			return perlinNise.FractalNoise2D(x,z, 3, 40f, 1f)/* * perlinNise.FractalNoise3D(x,y,z, 5, 20f, 0.5f)*/;
 	}
 }

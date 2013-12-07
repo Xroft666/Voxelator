@@ -19,6 +19,7 @@ public class TerrainCluster : MonoBehaviour
 		filter.mesh.triangles = indices;
 		filter.mesh.uv = new Vector2[vertices.Length];
 
+
 		filter.mesh.colors = colors;
 		filter.mesh.RecalculateNormals();
 	}

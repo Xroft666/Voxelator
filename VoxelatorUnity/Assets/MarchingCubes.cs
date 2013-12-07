@@ -23,6 +23,7 @@ public class GRIDCELL
 public delegate float FillInVoxelsDataProcessor(object[] parameters);
 public delegate Color AddColors(float height);
 
+
 public class MarchingCubes  
 {
 
@@ -369,7 +370,7 @@ public class MarchingCubes
 	};
 
 	
-	public static void FillVoxelData(FillInVoxelsDataProcessor proc, Vector3 pivot, int gridSize, float scale, out GRIDCELL[,,] voxelsData)
+	public static void FillVoxelData(FillInVoxelsDataProcessor proc, Vector3 pivot, int gridSize, float scale, out GRIDCELL[,,] voxelsData, float maxH)
 	{		
 		voxelsData = new GRIDCELL[gridSize+1,gridSize+1,gridSize+1];
 
@@ -384,7 +385,7 @@ public class MarchingCubes
 						
 //						voxelsData[x,y,z].density = proc(new object[]{x + pivot.x, y + pivot.y, z + pivot.z});
 						float density = proc(new object[]{x + pivot.x, y + pivot.y, z + pivot.z});
-						int height = (int) (density * 20f);
+						int height = (int) (density * maxH);
 						
 //						if( height == y ) voxelsData[x,y,z].density = density;
 						if( height >= y ) voxelsData[x,y,z].density = 1f;
