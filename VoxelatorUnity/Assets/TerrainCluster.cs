@@ -10,7 +10,7 @@ public class TerrainCluster : MonoBehaviour
 	{
 		filter = gameObject.AddComponent<MeshFilter>();
 		gameObject.AddComponent<MeshRenderer>();
-		renderer.material = new Material(Shader.Find("Diffuse"));
+		renderer.material = new Material(Shader.Find("Custom/ColoredDiffuse"));
 	}
 
 	public void SetMeshData(int[] indices, Vector3[] vertices, Color[] colors)
