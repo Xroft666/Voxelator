@@ -21,6 +21,7 @@ public class GRIDCELL
 };
 
 public delegate float FillInVoxelsDataProcessor(object[] parameters);
+public delegate Color32 AddColorsProcessor(float height);
 
 public class MarchingCubes  
 {
@@ -396,10 +397,10 @@ public class MarchingCubes
 		}
 	}
 
-//	public static void ColorProcessor(Vector3 height)
-//	{
-//		if (height == )
-//	}
+	public static void ColorProcessor(AddColorsProcessor proc)
+	{
+		
+	}
 
 	public static void GenerateChunk(GRIDCELL[,,] voxelsData, bool optimized, out int[] indices, out Vector3[] vertices) 
 	{

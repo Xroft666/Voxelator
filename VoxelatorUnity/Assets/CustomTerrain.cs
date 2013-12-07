@@ -51,9 +51,9 @@ public class CustomTerrain : MonoBehaviour
 				
 				Vector3[] vertices;
 				int[] indices;
-				MarchingCubes.GenerateChunk(grid, optimizeAlgorythm, out indices, out vertices);
-				
-				terrainChunk.SetMeshData(indices, vertices);
+				Color32[] colors;
+				MarchingCubes.GenerateChunk(grid, optimizeAlgorythm, out indices, out vertices, out colors);
+				terrainChunk.SetMeshData(indices, vertices, colors);
 			}
 		}
 	}
