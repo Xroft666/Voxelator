@@ -80,11 +80,14 @@ public class CustomTerrain : MonoBehaviour
 	{
 		Vector3 pos = (Vector3) parameters[0];
 
+		if (pos.y  < terrainMinHeight || pos.y  > terrainMaxHeight )  
+			return 0;
+		else
 		// spere: x^2 + y^2 + z^2 = R 
-		return 	(pos.x - voxelDensity / 2f) * (pos.x - voxelDensity / 2f) + 
-				(pos.y - voxelDensity / 2f) * (pos.y - voxelDensity / 2f) + 
-				(pos.z - voxelDensity / 2f) * (pos.z - voxelDensity / 2f) <= 
-						voxelDensity * voxelDensity / 4f? 1f : -1f;
+			return 	(pos.x - voxelDensity / 2f) * (pos.x - voxelDensity / 2f) + 
+					(pos.y - voxelDensity / 2f) * (pos.y - voxelDensity / 2f) + 
+					(pos.z - voxelDensity / 2f) * (pos.z - voxelDensity / 2f) <= 
+							voxelDensity * voxelDensity / 4f? 1f : -1f;
 	}
 
 	public Color AddColors(float height)
@@ -94,24 +97,26 @@ public class CustomTerrain : MonoBehaviour
 	}
 	float FillRandom(object[] parameters)
 	{
-		return Random.Range(-1,1);;
+
+			return Random.Range(-1,1);;
 	}
 
 	float FillPerlinNoise(object[] parameters)
 	{
 		Vector3 pos = (Vector3) parameters[0] + (Vector3) parameters[1];
 
-		return perlinNise.FractalNoise3D(pos.x,pos.y,pos.z, 3, 40f, 1f);
+		if (pos.y  < terrainMinHeight || pos.y  > terrainMaxHeight )  
+			return 0;
+		else
+			return perlinNise.FractalNoise3D(pos.x,pos.y,pos.z, 3, 40f, 1f);
 	}
 
 	float MobraNoise(object[] parameters)
 	{
 		Vector3 pos = (Vector3) parameters[0] + (Vector3) parameters[1];
 
-		if (pos.y < terrainMinHeight)
-			return 1f;
-		else if (pos.y > terrainMaxHeight)
-			return -1;
+		if (pos.y  < terrainMinHeight || pos.y  > terrainMaxHeight )  
+			return 0;
 		else
 		{
 			float gain = 1.0f;
