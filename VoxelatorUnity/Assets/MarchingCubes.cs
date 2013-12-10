@@ -370,7 +370,7 @@ public class MarchingCubes
 	};
 
 	
-	public static void FillVoxelData(FillInVoxelsDataProcessor proc, Vector3 pivot, int gridSize, float scale, out GRIDCELL[,,] voxelsData, float maxH)
+	public static void FillVoxelData(FillInVoxelsDataProcessor proc, Vector3 pivot, int gridSize, float scale, out GRIDCELL[,,] voxelsData, float maxH, Algorithm algotithm)
 	{		
 		voxelsData = new GRIDCELL[gridSize+1,gridSize+1,gridSize+1];
 
@@ -383,15 +383,26 @@ public class MarchingCubes
 					{
 						voxelsData[x,y,z] = new GRIDCELL();
 						
-//						voxelsData[x,y,z].density = proc(new object[]{x + pivot.x, y + pivot.y, z + pivot.z});
-						float density = proc(new object[]{x + pivot.x, y + pivot.y, z + pivot.z});
-						int height = (int) (density * maxH);
-						
-//						if( height == y ) voxelsData[x,y,z].density = density;
-						if( height >= y ) voxelsData[x,y,z].density = 1f;
-						if( height < y ) voxelsData[x,y,z].density = -1f;
+						// NOISE
 
-						voxelsData[x,y,z].position = new Vector3((float) x, (float) height, (float) z) + pivot;
+//						voxelsData[x,y,z].density = proc(new object[]{new Vector3(x,y,z), pivot});
+//						voxelsData[x,y,z].position = new Vector3((float) x, (float) y * maxH, (float) z) + pivot;
+
+						// HEIGHTMAP
+
+						float density = proc(new object[]{new Vector3(x,y,z), pivot});
+						voxelsData[x,y,z].density = density;
+
+						float height = (float) y;
+						if( algotithm == Algorithm.HEIGHTMAP )
+						{
+							height = density * maxH;
+
+							if( height >= y ) voxelsData[x,y,z].density = 1f;
+							if( height < y ) voxelsData[x,y,z].density = -1f;
+						}
+
+						voxelsData[x,y,z].position = new Vector3((float) x, height, (float) z) + pivot;
 					}
 
 			}
@@ -425,16 +436,6 @@ public class MarchingCubes
 								
 					Vector3[] VertexList = new Vector3[12];
 
-//					Color[] terrainColor = new Color[]{
-//						Color(0, 0, 128),
-//						Color(0, 128, 255 ), 
-//						Color(240, 240, 64),
-//						Color(32, 160, 0),
-//						Color(224, 224, 0),
-//						Color(128, 128, 128),
-//						Color(255, 255, 255)
-//					};
-
 
 					for(int i = 0; i < 8; i++) 
 					{
@@ -467,9 +468,9 @@ public class MarchingCubes
 						                     						z + vertexOffset[edgeConnection[i,1], 2]].density);
 
 							// dont know when vertexOffset thing appeared in here, but it had + and did dragon skin
-							VertexList[i].x = voxelsData[x,y,z].position.x + (vertexOffset[edgeConnection[i,0],0] * offset * edgeDirection[i,0]);
-							VertexList[i].y = voxelsData[x,y,z].position.y + (vertexOffset[edgeConnection[i,0],1] * offset * edgeDirection[i,1]);
-							VertexList[i].z = voxelsData[x,y,z].position.z + (vertexOffset[edgeConnection[i,0],2] * offset * edgeDirection[i,2]);
+							VertexList[i].x = voxelsData[x,y,z].position.x + (vertexOffset[edgeConnection[i,0],0] + offset * edgeDirection[i,0]);
+							VertexList[i].y = voxelsData[x,y,z].position.y + (vertexOffset[edgeConnection[i,0],1] + offset * edgeDirection[i,1]);
+							VertexList[i].z = voxelsData[x,y,z].position.z + (vertexOffset[edgeConnection[i,0],2] + offset * edgeDirection[i,2]);
 						}
 					}
 

@@ -1,6 +1,15 @@
 ﻿using UnityEngine;
 using System.Collections;
 
+public enum Algorithm
+{
+	SPHERE,
+	RANDOM,
+	PERLIN3D,
+	MOBRA,
+	HEIGHTMAP
+}
+
 public class CustomTerrain : MonoBehaviour 
 {
 	public int clustersDimension;
@@ -13,32 +22,12 @@ public class CustomTerrain : MonoBehaviour
 	public float maxH = 20f;
 
 	public Gradient gradient;
-
+	public Algorithm algorithm = Algorithm.SPHERE;
 	public int octaves = 3;
 	public float frequency = 40f;
 	public float amplitude = 1f;
 
 
-	private Color[] terrainColor = new Color[]{
-		new Color(0, 0, 0.5f),
-		new Color(0, 0.5f, 1 ), 
-		new Color(1, 1, 0.5f),
-		new Color(0.5f, 1, 0),
-		new Color(1, 1, 0),
-		new Color(0.5f, 0.5f, 0.5f),
-		new Color(1, 1, 1)
-	};
-
-
-	/*private Color32[] terrainColor = new Color32[]{
-		new Color32(0, 0, 128, 255),
-		new Color32(0, 128, 255, 255 ), 
-		new Color32(240, 240, 64, 255),
-		new Color32(32, 160, 0, 255),
-		new Color32(224, 224, 0, 255),
-		new Color32(128, 128, 128, 255),
-		new Color32(255, 255, 255, 255)
-	};*/
 
 	private SimplexNoise3D simpleNoise;
 	private PerlinNoise perlinNise;
@@ -48,6 +37,23 @@ public class CustomTerrain : MonoBehaviour
 		perlinNise = new PerlinNoise(1);
 		simpleNoise = new SimplexNoise3D();
 		Vector3 clasterOffset = Vector3.zero;
+
+		FillInVoxelsDataProcessor algoDelegate= FillASphere;
+		switch(algorithm)
+		{
+		case Algorithm.RANDOM:
+			algoDelegate = FillRandom;
+			break;
+		case Algorithm.PERLIN3D:
+			algoDelegate = FillPerlinNoise;
+			break;
+		case Algorithm.MOBRA:
+			algoDelegate = MobraNoise;
+			break;
+		case Algorithm.HEIGHTMAP:
+			algoDelegate = FillHeightMap;
+			break;
+		}
 
 		for( int i = 0; i < clustersDimension; i++ )
 		{
@@ -61,8 +67,7 @@ public class CustomTerrain : MonoBehaviour
 				TerrainCluster terrainChunk = chunkGO.AddComponent<TerrainCluster>();
 				
 				GRIDCELL[,,] grid;
-				MarchingCubes.FillVoxelData(Fill2DNoise, clasterOffset, clusterSize, gridScale, out grid, maxH);
-//				MarchingCubes.ColorProcessor(AddColors);
+				MarchingCubes.FillVoxelData(algoDelegate, clasterOffset, clusterSize, gridScale, out grid, maxH, algorithm);
 				
 				Vector3[] vertices;
 				int[] indices;
@@ -78,89 +83,46 @@ public class CustomTerrain : MonoBehaviour
 
 	float FillASphere(object[] parameters)
 	{
-		float x = (float) parameters[0];
-		float y = (float) parameters[1];
-		float z = (float) parameters[2];
+		Vector3 pos = (Vector3) parameters[0];
 
 		// spere: x^2 + y^2 + z^2 = R 
-
-		return 	(x - clusterSize / 2f) * (x - clusterSize / 2f) + 
-				(y - clusterSize / 2f) * (y - clusterSize / 2f) + 
-				(z - clusterSize / 2f) * (z - clusterSize / 2f) <= clusterSize * clusterSize / 4f? 1f : -1f;
+		return 	(pos.x - clusterSize / 2f) * (pos.x - clusterSize / 2f) + 
+				(pos.y - clusterSize / 2f) * (pos.y - clusterSize / 2f) + 
+				(pos.z - clusterSize / 2f) * (pos.z - clusterSize / 2f) <= 
+						clusterSize * clusterSize / 4f? 1f : -1f;
 	}
 
 	public Color AddColors(float height)
 	{
 		return gradient.Evaluate(height / maxH);
 
-
-		/*if (height < terrainMinHeight)
-			return terrainColor[0];
-
-		else if (height > terrainMinHeight && height < (terrainMaxHeight - terrainMinHeight) / 100*10)
-			return terrainColor[1];
-
-		else if (height > (terrainMaxHeight - terrainMinHeight) / 100*10 && height < (terrainMaxHeight - terrainMinHeight) / 100*25)
-			return terrainColor[2];
-
-		else if (height > (terrainMaxHeight - terrainMinHeight) / 100*25 && height < (terrainMaxHeight - terrainMinHeight) / 100*50)
-			return terrainColor[3];
-
-		else if (height > (terrainMaxHeight - terrainMinHeight) / 100*50 && height < (terrainMaxHeight - terrainMinHeight) / 100*70)
-			return terrainColor[4];
-
-		else if (height > (terrainMaxHeight - terrainMinHeight) / 100*70 && height < (terrainMaxHeight - terrainMinHeight) / 100*90)
-			return terrainColor[5];
-
-		else if (height > (terrainMaxHeight - terrainMinHeight) / 100*90 && height <= terrainMaxHeight)
-			return terrainColor[6];
-
-		else
-			return new Color32(0,0,0, 255); */
-	
-
-
 	}
 	float FillRandom(object[] parameters)
 	{
-		return Random.value;
+		return Random.Range(-1,1);;
 	}
 
 	float FillPerlinNoise(object[] parameters)
 	{
+		Vector3 pos = (Vector3) parameters[0] + (Vector3) parameters[1];
 
-		float x = (float) parameters[0];
-		float y = (float) parameters[1];
-		float z = (float) parameters[2];
-
-		if (y < terrainMinHeight)
-			return 1f;
-		else if (y > terrainMaxHeight)
-			return -1;
-		else
-			return perlinNise.FractalNoise3D(x,y,z, 3, 40f, 1f);
+		return perlinNise.FractalNoise3D(pos.x,pos.y,pos.z, 3, 40f, 1f);
 	}
 
 	float FillSimpleNoise(object[] parameters)
 	{
-		float x = (float) parameters[0];
-		float y = (float) parameters[1];
-		float z = (float) parameters[2];
+		Vector3 pos = (Vector3) parameters[0] + (Vector3) parameters[1];
 		
-		return simpleNoise.CoherentNoise(x,y,z, 3, 40, 1f, 2f, 0.9f);
+		return simpleNoise.CoherentNoise(pos.x,pos.y,pos.z, 3, 40, 1f, 2f, 0.9f);
 	}
 
 	float MobraNoise(object[] parameters)
 	{
-		float x = (float) parameters[0];
-		float y = (float) parameters[1];
-		float z = (float) parameters[2];
+		Vector3 pos = (Vector3) parameters[0] + (Vector3) parameters[1];
 
-
-
-		if (y < terrainMinHeight)
+		if (pos.y < terrainMinHeight)
 			return 1f;
-		else if (y > terrainMaxHeight)
+		else if (pos.y > terrainMaxHeight)
 			return -1;
 		else
 		{
@@ -169,24 +131,25 @@ public class CustomTerrain : MonoBehaviour
 			
 			for(int i = 0; i < octaves; i++)
 			{
-				sum += perlinNise.Noise3D(x*gain/frequency, y*gain/frequency, z*gain/frequency) * amplitude/gain;
+				sum += perlinNise.Noise3D(pos.x * gain/frequency, pos.y * gain/frequency, pos.z * gain/frequency) * amplitude/gain;
 				gain *= 2.0f;
 			}
 			return sum;
 		}
 	}
 
-	float Fill2DNoise(object[] parameters)
+	float FillHeightMap(object[] parameters)
 	{
-		float x = (float) parameters[0];
-		float y = (float) parameters[1];
-		float z = (float) parameters[2];
+		Vector3 pos = (Vector3) parameters[0];
+		Vector3 pivot = (Vector3) parameters[1];
 
-		if (y < terrainMinHeight)
+		float density = perlinNise.FractalNoise2D((pos + pivot).x, (pos + pivot).z, 3, 40f, 1f);
+
+		if (pos.y  < terrainMinHeight )  
 			return 0;
-		else if (y > terrainMaxHeight)
+		if( pos.y  > terrainMaxHeight )
 			return 0;
-		else
-			return perlinNise.FractalNoise2D(x,z, 3, 40f, 1f)/* * perlinNise.FractalNoise3D(x,y,z, 5, 20f, 0.5f)*/;
+
+		return density;
 	}
 }
