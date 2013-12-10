@@ -12,10 +12,8 @@ public enum Algorithm
 
 public class CustomTerrain : MonoBehaviour 
 {
-	public int clustersDimension;
-
-	public int clusterSize = 5;
-	public float gridScale = 1f;
+	public int clustersNumber = 5;
+	public int voxelDensity = 50;
 	public bool optimizeAlgorythm = false;
 	public int terrainMinHeight = 0;
 	public int terrainMaxHeight = 100;
@@ -28,14 +26,11 @@ public class CustomTerrain : MonoBehaviour
 	public float amplitude = 1f;
 
 
-
-	private SimplexNoise3D simpleNoise;
 	private PerlinNoise perlinNise;
 
 	void Start()
 	{
-		perlinNise = new PerlinNoise(1);
-		simpleNoise = new SimplexNoise3D();
+		perlinNise = new PerlinNoise(Random.Range(1,100));
 		Vector3 clasterOffset = Vector3.zero;
 
 		FillInVoxelsDataProcessor algoDelegate= FillASphere;
@@ -55,11 +50,11 @@ public class CustomTerrain : MonoBehaviour
 			break;
 		}
 
-		for( int i = 0; i < clustersDimension; i++ )
+		for( int i = 0; i < clustersNumber; i++ )
 		{
-			for( int j = 0; j < clustersDimension; j++ )
+			for( int j = 0; j < clustersNumber; j++ )
 			{
-				clasterOffset = new Vector3(i * clusterSize, 0f, j * clusterSize );
+				clasterOffset = new Vector3(i * voxelDensity, 0f, j * voxelDensity );
 
 				GameObject chunkGO = new GameObject("cluster" + i + j);
 				chunkGO.transform.parent = transform;
@@ -67,7 +62,7 @@ public class CustomTerrain : MonoBehaviour
 				TerrainCluster terrainChunk = chunkGO.AddComponent<TerrainCluster>();
 				
 				GRIDCELL[,,] grid;
-				MarchingCubes.FillVoxelData(algoDelegate, clasterOffset, clusterSize, gridScale, out grid, maxH, algorithm);
+				MarchingCubes.FillVoxelData(algoDelegate, clasterOffset, voxelDensity, out grid, maxH, algorithm);
 				
 				Vector3[] vertices;
 				int[] indices;
@@ -86,10 +81,10 @@ public class CustomTerrain : MonoBehaviour
 		Vector3 pos = (Vector3) parameters[0];
 
 		// spere: x^2 + y^2 + z^2 = R 
-		return 	(pos.x - clusterSize / 2f) * (pos.x - clusterSize / 2f) + 
-				(pos.y - clusterSize / 2f) * (pos.y - clusterSize / 2f) + 
-				(pos.z - clusterSize / 2f) * (pos.z - clusterSize / 2f) <= 
-						clusterSize * clusterSize / 4f? 1f : -1f;
+		return 	(pos.x - voxelDensity / 2f) * (pos.x - voxelDensity / 2f) + 
+				(pos.y - voxelDensity / 2f) * (pos.y - voxelDensity / 2f) + 
+				(pos.z - voxelDensity / 2f) * (pos.z - voxelDensity / 2f) <= 
+						voxelDensity * voxelDensity / 4f? 1f : -1f;
 	}
 
 	public Color AddColors(float height)
@@ -107,13 +102,6 @@ public class CustomTerrain : MonoBehaviour
 		Vector3 pos = (Vector3) parameters[0] + (Vector3) parameters[1];
 
 		return perlinNise.FractalNoise3D(pos.x,pos.y,pos.z, 3, 40f, 1f);
-	}
-
-	float FillSimpleNoise(object[] parameters)
-	{
-		Vector3 pos = (Vector3) parameters[0] + (Vector3) parameters[1];
-		
-		return simpleNoise.CoherentNoise(pos.x,pos.y,pos.z, 3, 40, 1f, 2f, 0.9f);
 	}
 
 	float MobraNoise(object[] parameters)

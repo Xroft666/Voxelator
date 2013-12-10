@@ -1,13 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-// references
-// http://graphics.stanford.edu/~mdfisher/MarchingCubes.html
-// http://scrawkblog.com/2013/04/01/marching-cubes-plugin-for-unity/
-
-//http://www.exaflop.org/docs/marchcubes/
-//http://books.google.dk/books?id=ZFrlULckWdAC&pg=PA9&redir_esc=y#v=onepage&q&f=false
-//http://www.siafoo.net/snippet/100
 
 public class GRIDCELL 
 {
@@ -28,8 +21,7 @@ public class MarchingCubes
 {
 
 	//marching cubes table data
-	
-	// ** my comments ** //
+
 	// Bit flags containter. 
 	// Every of those values is in hex with 3 digits,
 	// meaning that it can contain 12 bits
@@ -73,7 +65,7 @@ public class MarchingCubes
 	0xf00, 0xe09, 0xd03, 0xc0a, 0xb06, 0xa0f, 0x905, 0x80c,
 	0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x0   };
 	
-	// ** my comments ** //
+
 	// For all of the possible 256 cases (2 ^8 )
 	// where 2 - is "in the ground, or not"
 	// 8 - number of voxel vertices
@@ -370,11 +362,10 @@ public class MarchingCubes
 	};
 
 	
-	public static void FillVoxelData(FillInVoxelsDataProcessor proc, Vector3 pivot, int gridSize, float scale, out GRIDCELL[,,] voxelsData, float maxH, Algorithm algotithm)
+	public static void FillVoxelData(FillInVoxelsDataProcessor proc, Vector3 pivot, int gridSize, out GRIDCELL[,,] voxelsData, float maxH, Algorithm algotithm)
 	{		
 		voxelsData = new GRIDCELL[gridSize+1,gridSize+1,gridSize+1];
 
-		// heightmap
 		for( int x = 0; x <= gridSize; x ++ )
 		{
 			for( int y = 0; y <= gridSize; y ++ )
@@ -382,13 +373,6 @@ public class MarchingCubes
 				for( int z = 0; z <= gridSize; z ++ )
 					{
 						voxelsData[x,y,z] = new GRIDCELL();
-						
-						// NOISE
-
-//						voxelsData[x,y,z].density = proc(new object[]{new Vector3(x,y,z), pivot});
-//						voxelsData[x,y,z].position = new Vector3((float) x, (float) y * maxH, (float) z) + pivot;
-
-						// HEIGHTMAP
 
 						float density = proc(new object[]{new Vector3(x,y,z), pivot});
 						voxelsData[x,y,z].density = density;
@@ -408,11 +392,6 @@ public class MarchingCubes
 			}
 		}
 	}
-
-//	public static void ColorProcessor(AddColorsProcessor proc)
-//	{
-//		
-//	}
 
 	public static void GenerateChunk(AddColors proc, GRIDCELL[,,] voxelsData, bool optimized, out int[] indices, out Vector3[] vertices, out Color[] Colors) 
 	{
